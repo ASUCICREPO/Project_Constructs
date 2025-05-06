@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Demo</title>
+</head>
+<body>
+    <h1>WebSocket Demo</h1>
+    
+    <div>
+        <button id="connectBtn">Connect to WebSocket</button>
+        <button id="disconnectBtn" disabled>Disconnect</button>
+    </div>
+    
+    <div>
+        <input type="text" id="userNameInput" placeholder="Enter your username" />
+        <input type="text" id="messageInput" placeholder="Enter your message" />
+        <button id="sendMessageBtn" disabled>Send Message</button>
+    </div>
+
+    <div>
+        <h3>Messages</h3>
+        <pre id="messageOutput"></pre>
+    </div>
+
+    <script>
+        let socket;
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const messageInput = document.getElementById('messageInput');
+        const userNameInput = document.getElementById('userNameInput'); // New input field for username
+        const messageOutput = document.getElementById('messageOutput');
+
+        // Your WebSocket API Gateway URL
+        const wsUrl = 'wss://ewr40frw3k.execute-api.us-east-1.amazonaws.com/cdk_test/';
+        const authToken = 'eyJraWQiOiJFZzdUNkZYRWlqc3FTRHhHWW5oXC9SUXRZbktUVngrd0dMeHZ3VnVON2p6ND0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwNGU4YjQ1OC1lMDIxLTcwNzQtNjhiZC1kODEyMGY0MjdiMWYiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiY3VzdG9tOmxpc3RzZWxlY3Rpb24iOiJBU1BDLVBob2VuaXgiLCJjdXN0b206bGFzdE5hbWUiOiJNaXN0cnkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9mV2o1MnYxNlYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDRlOGI0NTgtZTAyMS03MDc0LTY4YmQtZDgxMjBmNDI3YjFmIiwib3JpZ2luX2p0aSI6IjVlMWQwMGRiLTdjZjEtNDEwNC04YmNlLWIyZmRjYmNkZWE4MyIsImF1ZCI6IjRrM29sZ2hzc2VxczB2czhkaGJrbWNqNmpkIiwiZXZlbnRfaWQiOiJmMTQwMTU3ZC1iNGExLTQyZGEtYjA4ZS1lZWVjYmY3YzI3YjAiLCJjdXN0b206Zmlyc3ROYW1lIjoiTmFtYW4iLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTczMjU1ODgzNSwiZXhwIjoxNzMyNTYyNDM1LCJpYXQiOjE3MzI1NTg4MzUsImp0aSI6IjQ1NGYxODNhLWQzY2QtNDE2ZS04NzBlLTlkODNhMjU4ODI3ZSIsImVtYWlsIjoibm1pc3RyeTZAYXN1LmVkdSJ9.c9kGZd5vmiZK9RGkbY76vle1iELZRz7R7JeHooBohrD8iMMctnBcvyOqxyYT9kx9RePXbN8atNTj5nglmdEcx-MX9-2AZ8p643yXJAmZt5EQmoqNswURl-pNAtoREOUxRbEWeFOEyeizzp1MFXkBd8ZpVZP1hwAY5eGt1bsRC42XKzTzZNm_ruUaGCTtROOr_FqVossrnq_08BFvrq01nYa0Hm5BJi2PWR15J6WoGrquUSYBIoeJfdRpC7mdZTfVYlq-npeztSOwJovgRcRjOUUVjMuRqsu-9wHC6Yl6rfsrQuw20P4kq8qUdGziFUxWT7Aarj5wmUJe18-AldzZ3A'
+        connectBtn.addEventListener('click', function () {
+            // Establish WebSocket connection
+            const urlWithToken = `${wsUrl}?token=${encodeURIComponent(authToken)}`;
+            socket = new WebSocket(urlWithToken);
+            
+            socket.onopen = function () {
+                console.log('WebSocket connection opened');
+                messageOutput.innerText += 'Connected to WebSocket\n';
+                
+                // Send additional fields
+           
+
+                // Enable the buttons once connected
+                sendMessageBtn.disabled = false;
+                disconnectBtn.disabled = false;
+                connectBtn.disabled = true;
+            };
+
+            socket.onmessage = function (event) {
+                console.log('Message received:', event.data);
+                messageOutput.innerText += 'Received: ' + event.data + '\n';
+            };
+
+            socket.onclose = function () {
+                console.log('WebSocket connection closed');
+                messageOutput.innerText += 'Disconnected from WebSocket\n';
+                
+                // Disable the buttons once disconnected
+                sendMessageBtn.disabled = true;
+                disconnectBtn.disabled = true;
+                connectBtn.disabled = false;
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket error:', error);
+                messageOutput.innerText += 'Error: ' + error + '\n';
+            };
+        });
+
+        disconnectBtn.addEventListener('click', function () {
+            // Close WebSocket connection and send disconnect action
+            if (socket) {
+                socket.send(JSON.stringify({ action: 'disconnect' })); // Notify server about disconnect
+                socket.close();
+            }
+        });
+
+        sendMessageBtn.addEventListener('click', function () {
+            const message = messageInput.value;
+            if (message && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: 'message', data: message }));
+                messageOutput.innerText += 'Sent: ' + message + '\n';
+                messageInput.value = '';  // Clear input
+            } else {
+                messageOutput.innerText += 'WebSocket is not connected\n';
+            }
+        });
+    </script>
+</body>
+</html>
